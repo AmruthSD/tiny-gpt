@@ -4,9 +4,11 @@ from tokenizers.trainers import BpeTrainer
 from tokenizers.pre_tokenizers import Whitespace
 from datasets import load_dataset
 
+from src.config import vocab_size
+
 
 class BPETokenizer:
-    def __init__(self, vocab_size: int = 4096):
+    def __init__(self, vocab_size: int = vocab_size):
         self.vocab_size = vocab_size
         self.tokenizer = Tokenizer(BPE(unk_token="[UNK]"))
 

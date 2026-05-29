@@ -3,7 +3,8 @@ import numpy as np
 from datasets import load_dataset
 from tqdm import tqdm
 
-from tokenizer import BPETokenizer
+from src.tokenizer import BPETokenizer
+from src.config import vocab_size, train_split
 
 
 DATA_DIR = "data"
@@ -15,8 +16,8 @@ TOKENIZER_PATH = os.path.join(DATA_DIR, "tokenizer.json")
 
 
 def prepare_dataset(
-    vocab_size: int = 4096,
-    train_split: float = 0.9,
+    vocab_size: int = vocab_size,
+    train_split: float = train_split,
     dataset_fraction: str = "1%"
 ):
     os.makedirs(DATA_DIR, exist_ok=True)
