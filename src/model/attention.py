@@ -80,11 +80,18 @@ class MultiHeadAttention(nn.Module):
 
         scores = scores / (self.head_dim ** 0.5)
 
-        if mask is not None:
-            scores = scores.masked_fill(
-                mask == 0,
-                float("-inf")
+        mask = torch.tril(
+            torch.ones(
+                seq_len,
+                seq_len,
+                device=x.device
             )
+        )
+
+        scores = scores.masked_fill(
+            mask == 0,
+            float("-inf")
+        )
 
         attention = F.softmax(
             scores,
