@@ -5,11 +5,79 @@ from src.config import (
     checkpoint_path,
     context_length,
     max_new_tokens,
-    temperature
+    temperature,
+    top_k,
+    top_p
 )
 
 from src.tokenizer import BPETokenizer
 from src.model.model import TransformerModel
+
+def sample_token(
+    logits,
+    temperature=temperature,
+    top_k=None,
+    top_p=None
+):
+    logits = logits / temperature
+
+    # Top-K
+    if top_k is not None:
+        values, _ = torch.topk(logits, top_k)
+
+        cutoff = values[-1]
+
+        logits = torch.where(
+            logits < cutoff,
+            torch.tensor(float("-inf"), device=logits.device),
+            logits
+        )
+
+    # Top-P (Nucleus)
+    if top_p is not None:
+        sorted_logits, sorted_indices = torch.sort(
+            logits,
+            descending=True
+        )
+
+        sorted_probs = torch.softmax(
+            sorted_logits,
+            dim=-1
+        )
+
+        cumulative_probs = torch.cumsum(
+            sorted_probs,
+            dim=-1
+        )
+
+        remove_mask = cumulative_probs > top_p
+
+        # keep at least one token
+        remove_mask[1:] = remove_mask[:-1].clone()
+        remove_mask[0] = False
+
+        sorted_logits[remove_mask] = float("-inf")
+
+        logits = torch.full_like(
+            logits,
+            float("-inf")
+        )
+
+        logits.scatter_(
+            0,
+            sorted_indices,
+            sorted_logits
+        )
+
+    probs = torch.softmax(
+        logits,
+        dim=-1
+    )
+
+    return torch.multinomial(
+        probs,
+        num_samples=1
+    ).item()
 
 def generate_without_cache(tokens):
 
@@ -28,20 +96,14 @@ def generate_without_cache(tokens):
             )
 
             logits, _ = model(x)
-
             logits = logits[0, -1]
 
-            logits = logits / temperature
-
-            probs = torch.softmax(
+            next_token = sample_token(
                 logits,
-                dim=-1
+                temperature=temperature,
+                top_k=top_k,
+                top_p=top_p
             )
-
-            next_token = torch.multinomial(
-                probs,
-                num_samples=1
-            ).item()
 
             tokens.append(next_token)
 
@@ -77,17 +139,12 @@ def generate_with_cache(tokens):
 
             logits = logits[0, -1]
 
-            logits = logits / temperature
-
-            probs = torch.softmax(
+            next_token = sample_token(
                 logits,
-                dim=-1
+                temperature=temperature,
+                top_k=top_k,
+                top_p=top_p
             )
-
-            next_token = torch.multinomial(
-                probs,
-                num_samples=1
-            ).item()
 
             tokens.append(next_token)
 

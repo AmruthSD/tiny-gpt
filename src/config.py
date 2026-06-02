@@ -21,3 +21,6 @@ checkpoint_path = "checkpoints/epoch_2.pt"
 
 max_new_tokens = 100
 temperature = 1.0
+
+top_k = 50
+top_p = 0.9
