@@ -14,17 +14,19 @@ class TransformerBlock(nn.Module):
         self.norm1 = nn.LayerNorm(self.attention.d_model)
         self.norm2 = nn.LayerNorm(self.attention.d_model)
 
-    def forward(self, x, mask=None):
+    def forward(self, x, kv_cache=None):
+
+        attn_out, new_kv_cache = self.attention(
+            self.norm1(x),
+            kv_cache
+        )
 
         # Attention block
-        x = x + self.attention(
-            self.norm1(x),
-            mask
-        )
+        x = x + attn_out
 
         # Feed-forward block
         x = x + self.feedforward(
             self.norm2(x)
         )
 
-        return x
+        return x, new_kv_cache

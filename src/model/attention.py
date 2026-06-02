@@ -41,9 +41,10 @@ class MultiHeadAttention(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x, mask=None):
+    def forward(self, x, kv_cache=None):
 
         batch_size, seq_len, _ = x.shape
+
         q = self.query(x)
         k = self.key(x)
         v = self.value(x)
@@ -73,6 +74,22 @@ class MultiHeadAttention(nn.Module):
         k = k.transpose(1, 2)
         v = v.transpose(1, 2)
 
+        if kv_cache is not None:
+            k = torch.cat(
+                [kv_cache["k"], k],
+                dim=2
+            )
+
+            v = torch.cat(
+                [kv_cache["v"], v],
+                dim=2
+            )
+
+        new_cache = {
+            "k": k,
+            "v": v
+        }
+
         scores = torch.matmul(
             q,
             k.transpose(-2, -1)
@@ -80,13 +97,20 @@ class MultiHeadAttention(nn.Module):
 
         scores = scores / (self.head_dim ** 0.5)
 
+        total_seq_len = k.size(2)
+
         mask = torch.tril(
             torch.ones(
-                seq_len,
-                seq_len,
+                total_seq_len,
+                total_seq_len,
                 device=x.device
             )
         )
+
+        mask = mask[
+            total_seq_len - seq_len:,
+            :
+        ]
 
         scores = scores.masked_fill(
             mask == 0,
@@ -106,6 +130,7 @@ class MultiHeadAttention(nn.Module):
         )
 
         out = out.transpose(1, 2)
+
         out = out.contiguous().view(
             batch_size,
             seq_len,
@@ -114,4 +139,4 @@ class MultiHeadAttention(nn.Module):
 
         out = self.output(out)
 
-        return out
+        return out, new_cache

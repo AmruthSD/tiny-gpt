@@ -17,7 +17,7 @@ train_path = "data/train.npy"
 val_path = "data/val.npy"
 
 
-checkpoint_path = "checkpoints/epoch_1.pt"
+checkpoint_path = "checkpoints/epoch_2.pt"
 
 max_new_tokens = 100
 temperature = 1.0
