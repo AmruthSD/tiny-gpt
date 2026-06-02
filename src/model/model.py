@@ -33,22 +33,24 @@ class TransformerModel(nn.Module):
 
     def forward(self, x, kv_cache=None):
 
-        # token ids -> embeddings
         x = self.embeddings(x)
 
-        new_kv_cache = None
+        if kv_cache is None:
+            kv_cache = [None] * len(self.blocks)
 
-        # transformer blocks
-        for block in self.blocks:
-            x, new_kv_cache = block(
+        new_kv_cache = []
+
+        for block, block_cache in zip(self.blocks, kv_cache):
+
+            x, updated_cache = block(
                 x,
-                kv_cache
+                block_cache
             )
 
-        # final normalization
+            new_kv_cache.append(updated_cache)
+
         x = self.final_norm(x)
 
-        # project to vocabulary
         logits = self.lm_head(x)
 
         return logits, new_kv_cache
